@@ -27,13 +27,16 @@ jobs:
         run: dotnet build ./eShopOnWeb.sln --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish ${{env.DOTNET_ROOT}}/Web/Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
+        run: |
+          dotnet publish ./src/Web/Web.csproj -c Release -o ./myapp
+          cd ./myapp
+          zip -r ../app.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+           name: .net-app
+           path: ./app.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -54,12 +57,16 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_086124102AF241B2B74888E4D15B2762 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A3D0567FE52F4BCF8FA7C6A23CAFE86B }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E5BF0A0B98664947A5F96ADB30113F1B }}
-
+      
+      - name: Move app.zip to root
+        run: mv .net-app/app.zip .
+        
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'eshoponweb-webapp-testabc'
           slot-name: 'Production'
-          package: .
-          
+          package: ./app.zip
+
+      
